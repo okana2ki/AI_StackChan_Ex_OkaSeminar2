@@ -1,6 +1,6 @@
 [English](README_en.md)
 
-**岡ゼミ版AIスタックチャンを動かしたい人や、それを起点に開発したい人は、まず、[スタックチャン AI会話マニュアル_授業版.md](https://github.com/okana2ki/AI_StackChan_Ex_OkaSeminar2/blob/main/%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%83%81%E3%83%A3%E3%83%B3%20AI%E4%BC%9A%E8%A9%B1%E3%83%9E%E3%83%8B%E3%83%A5%E3%82%A2%E3%83%AB_%E6%8E%88%E6%A5%AD%E7%89%88_%E5%A4%89%E6%9B%B4%E7%AE%87%E6%89%80%E4%B8%80%E8%A6%A7.md)を見て下さい。**
+**岡ゼミ版AIスタックチャンを動かしたい人や、それを起点に開発したい人は、まず、[スタックチャン AI会話マニュアル_授業版.md](https://github.com/okana2ki/AI_StackChan_Ex_OkaSeminar2/blob/main/%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%83%81%E3%83%A3%E3%83%B3%20AI%E4%BC%9A%E8%A9%B1%E3%83%9E%E3%83%8B%E3%83%A5%E3%82%A2%E3%83%AB_%E6%8E%88%E6%A5%AD%E7%89%88_%E5%A4%89%E6%9B%B4%E7%AE%87%E6%89%80%E4%B8%80%E8%A6%A7.md) を見て下さい。**
 
 # AI Stack-chan Ex
 
