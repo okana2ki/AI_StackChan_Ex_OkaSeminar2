@@ -972,8 +972,8 @@ C:\stackchan2\firmware    ← VSCode・PlatformIOで開く場所
 2. **Current Branch → main** を選びます。すでに `main` ならそのままです。
 3. **Fetch origin** を押し、**Pull origin** が表示されたら押して `main` を更新します。
 4. **Current Branch → New Branch** を選び、名前を **`my-project`** にします。
-5. 分岐元を選ぶ画面では **`main`** を選び、**Create Branch** を押します。
-6. **Current Branch が `my-project`** になったことを確認します。以後の編集はここで行います。
+5. 分岐元を選ぶ画面が表示された場合は **`main`** を選び、**Create Branch** を押します。
+6. **Current Branch が `my-project`** になったことを確認します。以後の編集はここで行います。`Publish branch`ボタンが表示されますが、これは押さないで下さい。Publish branchというのは、ローカル（自分のPC）で作ったmy-projectブランチをGitHub（リモートレポジトリ）に送信して共有できるようにする操作で、この演習では今のところ使う予定はありません。
 
 > **すでにmainで編集・コミットしたことがある人へ**  
 > ファイルを破棄したり、`main` を強制的に元へ戻したりしないでください。未コミットの変更か、コミット済みかで移行方法が異なります。**[7-7](#7-7-うっかりmainで開発してしまったとき)の手順**で、自分の変更を `my-project` に移してから `main` を標準版へ戻します。分からないときは教員・Codexと相談します。
