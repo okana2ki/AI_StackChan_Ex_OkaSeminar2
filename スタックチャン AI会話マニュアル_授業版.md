@@ -1008,8 +1008,8 @@ C:\stackchan2\firmware    ← VSCode・PlatformIOで開く場所
 3. **Current Branch → main** で `main` に切り替えます。
 4. **Fetch origin → Pull origin** の順で教員の更新を取り込みます。Pullが表示されなければ、取り込む新しい更新はありません。
 5. **Current Branch → my-project** で自分のブランチに戻ります。
-6. **Current Branch → Choose a branch to merge into my-project** を選びます。
-7. 取り込むブランチとして **`main`** を選び、**Merge main into my-project** を押します。これは「教員の更新を自分の作品に組み合わせる」操作（マージ）です。取り込む変更がないと表示されれば、追加の操作は不要です。
+6. **Current Branch をクリック → 一番下に表示される Choose a branch to merge into my-project をクリック**
+7. 取り込むブランチとして **`main`** を選び、**Merge main into my-project** または**Create a merge commit**を押します。これは「教員の更新を自分の作品に組み合わせる」操作（マージ）です。取り込む変更がないと表示されれば、追加の操作は不要です。
 8. **Current Branch が `my-project`** であることを確認し、変更内容を読んで、**第9章の手順で必要なビルド・書き込みと実機確認**を行います。
 
 **`main` の更新と、`my-project` へのマージは別の操作です。** `main` に自分の作品をマージしないでください。公開していない `my-project` で **Publish branch** と表示されるのは異常ではありません。押す必要はありません。
