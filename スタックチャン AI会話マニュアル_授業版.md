@@ -2279,6 +2279,7 @@ print(df.describe())
 # 付録C　出荷時ファームウェアの復元
 
 [このページ](https://docs.m5stack.com/ja/StackChan)の左サイドパネルの目次から「出荷時ファームウェアの復元」を探して下さい。
+[このページ](https://dev.classmethod.jp/articles/web-m5burner/)も参考になると思います。
 
 ---
 
@@ -2288,3 +2289,4 @@ print(df.describe())
 - Gemini APIキーの取得：https://aistudio.google.com/
 - スタックチャン本家：https://github.com/stack-chan/stack-chan
 - M5Stack公式ドキュメント：https://docs.m5stack.com/en/StackChan
+- Claude Codeでのスタックチャンのコード開発ライブデモの解説記事：https://dev.classmethod.jp/articles/ai-real-m5stack/
