@@ -11,9 +11,14 @@
 #include "../RealtimeLLMBase.h"
 #include "../ChatGPT/FunctionCall.h"
 #include <WebSocketsClient.h>
+#include <atomic>
 
 
 class GeminiLive: public RealtimeLLMBase{
+private:
+    // WebSocketタスクからUIタスクへ渡す。-1=未選択、0=通常、1=笑顔。
+    std::atomic<int> responseExpression{-1};
+
 public:   //本当はprivateにしたいところだがコールバック関数にthisポインタを渡して使うためにpublicとした
     MCPClient* mcpClient[LLM_N_MCP_SERVERS_MAX];
     FunctionCall* fnCall;
@@ -28,6 +33,9 @@ public:
     virtual void chat(String text, const char *base64_buf = NULL) {};   //dummy
     virtual String& buildInputAudioJson(String& jsonBuf, String& base64);
     virtual void load_role();
+    void clearResponseExpression() override;
+    bool applyResponseExpression() override;
+    void handleToolCalls(JsonArrayConst calls);
 };
 
 

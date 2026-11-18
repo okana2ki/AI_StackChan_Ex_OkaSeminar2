@@ -69,3 +69,11 @@ WebAPI.cpp のインラインアセンブラ(マクロ：IMPORT_FILE)で incbin�
 ## Gemini Live のTLS検証（岡ゼミ版、2026-10-25）
 
 GeminiLiveはGoogle公式GTS Root R1〜R4をrootCAgoogleGemini.hに保持し、beginSslWithCAで接続する。接続先名と有効期限の検証はWiFiClientSecure/mbedTLSに委ねる。既存の起動時NTP同期とWebSocket再接続を利用し、検証省略へのフォールバックは行わない。PC検査と実機確認の区別・書き込み手順はdoc/20261025_Gemini証明書対策.md（リポジトリ直下）を参照。
+
+## Gemini Liveの表情選択教材（2026-11-18）
+
+GeminiLiveは既存のset_avatar_expressionの宣言を再利用し、公開する表情をhappy / neutralに限定する。他のLLM向けの6種類の定義は変更しない。googleSearchと接続済みMCPツールを維持し、update_memoryは既存の長期記憶設定が有効な場合だけ公開する。その他のローカル関数はこの教材では公開しない。
+
+関数要求は配列の全件を処理し、id/nameを引き継いだtoolResponse.functionResponsesをArduinoJsonで組み立てる。未公開の関数や不正な表情にはエラーを返す。音声とturnCompleteは独立した条件で処理し、同じメッセージ内でも終了処理を落とさない。テキスト・バイナリ両フレームのJSONを処理する。
+
+受信側は表情の選択をatomicで保存し、RealtimeAiModのUI側で反映する。直接Avatarを変更する既存の関数実装は使わず、既定表情による上書きと受信・UI間の二重制御を避ける。次の録音開始・エラー・切断・ツール取消時に選択を解除する。RealtimeLLMBaseの既定フックは何もしないため、他のLLMの表情動作は維持する。厳密な音声同期とAIによる首振りは対象外。学生向け手順はリポジトリ直下のdoc/AI表情_最初の改造例.mdを参照。

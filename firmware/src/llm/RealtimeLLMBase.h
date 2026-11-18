@@ -84,6 +84,8 @@ public:
     void webSocketProcess();
     int getAudioLevel();
     void startRealtimeRecord();
+    virtual void clearResponseExpression() {}
+    virtual bool applyResponseExpression() { return false; }
     void stopRealtimeRecord();
     void resetRealtimeRecordStartTime();
     portTickType checkRealtimeRecordTimeout();

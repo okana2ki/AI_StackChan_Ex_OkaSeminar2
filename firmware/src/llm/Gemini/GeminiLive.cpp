@@ -96,19 +96,6 @@ static const char input_audio_append[] =
           "}"
         "}";
 
-// for function calling
-//
-static const char function_response[] =
-        "{"
-            "\"tool_response\": {"
-              "\"function_responses\": [{"
-                "\"name\": \"REPLACE_TO_TOOL_NAME\","
-                "\"response\": {\"result\":\"REPLACE_TO_OUTPUT\"},"
-                "\"id\": \"REPLACE_TO_CALL_ID\""
-              "}]"
-            "}"
-        "}";
-
 // for debug (音声の代わりにテキストのプロンプトを入力する)
 //
 static const char input_text[] =
@@ -135,6 +122,7 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 		case WStype_DISCONNECTED:
       {
       Serial.printf("[WSc] Disconnected!\n");
+      p_this->clearResponseExpression();
 
       // 会話の途中（AIが話している／こちらが話している）で切れたかどうか。
       // 待機中の切断は自動で再接続されるので、画面の「じゅんび中」で足りる。
@@ -203,33 +191,24 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     }
                 }
 
-                // FunctionCall.cppで定義したfunctionをsession.updateに挿入
-                //
+                // 表情は2択。長期記憶は既存設定で有効な場合だけ維持する。
                 SpiRamJsonDocument functionsDoc(1024*10);
                 error = deserializeJson(functionsDoc, json_Functions.c_str());
-                if (error) {
+                if(error){
                     Serial.println("FunctionCall: JSON deserialization error");
+                }else{
+                    for(JsonObjectConst function : functionsDoc.as<JsonArrayConst>()){
+                        const bool isExpression = strcmp(function["name"] | "", "set_avatar_expression") == 0;
+                        const bool isMemory = strcmp(function["name"] | "", "update_memory") == 0;
+                        if(!isExpression && !(isMemory && p_this->enableMemory())){ continue; }
+                        JsonObject declaration = sessionUpdateDoc["setup"]["tools"][0]["functionDeclarations"].add<JsonObject>();
+                        declaration.set(function);
+                        if(!isExpression){ continue; }
+                        JsonArray choices = declaration["parameters"]["properties"]["expression"]["enum"].to<JsonArray>();
+                        choices.add("neutral");
+                        choices.add("happy");
+                    }
                 }
-
-#if !defined(EXHIBITION_NO_FUNCTIONS)
-                int nFuncs = functionsDoc.size();
-                for(int i=0; i<nFuncs; i++){
-                    sessionUpdateDoc["setup"]["tools"][0]["functionDeclarations"].add(functionsDoc[i]);
-                }
-#else
-                // 【展示向け】関数(set_avatar_expression / update_memory)を登録しない。
-                // 実機ログで、toolCall が発生した後のターンからモデルが音声を返さなくなり
-                // （modelTurn without audio が連続）、最終的に
-                // code=1007 "The audio content type (CONTENT_TYPE_AUDIO) is not supported
-                // for this model configuration" で切断される現象を確認したため。
-                // 1ターン目（toolCall前）は必ず成功し、2ターン目以降が無応答になるのが特徴。
-                // 表情は RealtimeAiMod::idle() が会話状態から自前で制御しているので、
-                // set_avatar_expression が無くても展示の見た目は変わらない。
-                // 長期記憶(update_memory)も展示では使わない（キャラ設定で memory:false）。
-                (void)functionsDoc;
-                Serial.println("[WSc] functionDeclarations は登録しません（展示モード）");
-#endif
-
 
                 String sessionUpdateStr;
                 serializeJson(sessionUpdateDoc, sessionUpdateStr);
@@ -239,21 +218,16 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 p_this->webSocket.sendTXT(sessionUpdateStr.c_str());
             }
 			break;
-		case WStype_TEXT:
-			Serial.printf("[WSc] get text: %s\n", payload);
-			//Serial.printf("[WSc] text size: %d\n", strlen((char*)payload));
-			break;
-		case WStype_BIN:
-			// 音声チャンクごとに呼ばれるためSerial出力は行わない（再生が途切れる原因になる）
-#if 0
-			Serial.printf("[WSc] get binary length: %u\n", length);
-#endif
-			//p_this->hexdump(payload, length);
-            //Serial.printf("[WSc] get binary: %s\n", payload);
-
-            error = deserializeJson(p_this->msgDoc, payload);
-            if (error) {
+        case WStype_TEXT:
+        case WStype_BIN:
+            // JSONはテキストフレームでもバイナリフレームでも同じように処理する。
+            error = deserializeJson(p_this->msgDoc, payload, length);
+            if(error){
                 Serial.printf("WebSocket Event: JSON deserialization error %d\n", error.code());
+                break;
+            }
+            if(!p_this->msgDoc["toolCallCancellation"].isNull()){
+                p_this->clearResponseExpression();
             }
 
             if(!p_this->msgDoc["setupComplete"].isNull()){
@@ -271,17 +245,14 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 #endif
             }
 #ifndef REALTIME_API_WITH_TTS
-            else if(!p_this->msgDoc["serverContent"]["modelTurn"]["parts"].isNull()){
+            if(!p_this->msgDoc["serverContent"]["modelTurn"]["parts"].isNull()){
                 // 【重要】parts配列を全部走査して音声(inlineData)を探す。
                 // 以前は parts[0] だけを見ており、しかも「parts[0]がtextなら何もしない」分岐が
                 // else-if連鎖の手前にあったため、モデルが [0]=text, [1]=音声 の形で返すと
                 // 音声が丸ごと捨てられていた（AIは返事しているのに端末は無音＝「返事が来ない」）。
                 // 実機ログで modelTurn text が3回出て turnComplete が1回しか成立しない状態を確認。
                 bool hasAudio = false;
-                for(int pi = 0; pi < 8; pi++){
-                    // ArduinoJson v7 のプロキシは auto でコピーできないため型を明示する
-                    JsonVariantConst part = p_this->msgDoc["serverContent"]["modelTurn"]["parts"][pi];
-                    if(part.isNull()){ break; }
+                for(JsonVariantConst part : p_this->msgDoc["serverContent"]["modelTurn"]["parts"].as<JsonArrayConst>()){
                     if(part["inlineData"]["data"].isNull()){ continue; }
 
                     if(p_this->speaking == false){
@@ -310,14 +281,11 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 }
             }
 #else
-            else if(!p_this->msgDoc["serverContent"]["modelTurn"]["parts"][0]["text"].isNull()){
+            if(!p_this->msgDoc["serverContent"]["modelTurn"]["parts"][0]["text"].isNull()){
                 Serial.printf("[WSc] modelTurn text\n");
             }
 #endif
-#ifndef REALTIME_API_WITH_TTS
-            else if(false){    // 旧: parts[0]固定の音声処理（上の走査に統合済み）
-            }
-#else
+#ifdef REALTIME_API_WITH_TTS
             // TODO: Gemini Liveのメッセージ形式に変更（これはOpenAIの形式)
             #if 0
             else if(msgType.equals("response.output_text.delta")){
@@ -334,25 +302,11 @@ static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             }
             #endif
 #endif
-            else if(!p_this->msgDoc["toolCall"]["functionCalls"][0].isNull()){
-                Serial.printf("[WSc] toolCall: %s\n", payload);
-
-                String name = p_this->msgDoc["toolCall"]["functionCalls"][0]["name"].as<String>();
-                String args = p_this->msgDoc["toolCall"]["functionCalls"][0]["args"].as<String>();
-                String call_id = p_this->msgDoc["toolCall"]["functionCalls"][0]["id"].as<String>();
-                Serial.printf("name: %s, args: %s, id: %s\n", name.c_str(), args.c_str(), call_id.c_str());
-
-                String response = p_this->fnCall->exec_calledFunc(name.c_str(), args.c_str());
-                response.replace("\"", "\\\"");     //JSON内の文字列を囲む"にエスケープ(\)を付ける
-
-                String json(function_response);
-                json.replace("REPLACE_TO_TOOL_NAME", name.c_str());
-                json.replace("REPLACE_TO_CALL_ID", call_id.c_str());
-                json.replace("REPLACE_TO_OUTPUT", response.c_str());
-                Serial.printf("[WSc] function output: %s\n", json.c_str());
-                p_this->webSocket.sendTXT(json);
+            if(p_this->msgDoc["toolCall"]["functionCalls"].is<JsonArrayConst>()){
+                p_this->handleToolCalls(p_this->msgDoc["toolCall"]["functionCalls"].as<JsonArrayConst>());
             }
-            else if(!p_this->msgDoc["serverContent"]["turnComplete"].isNull()){
+            // 音声・関数呼び出しと同じメッセージ内でも終了処理を取りこぼさない。
+            if(p_this->msgDoc["serverContent"]["turnComplete"] == true){
                 Serial.printf("[T %lu] turnComplete\n", (unsigned long)millis());
                 // 統計はリセットされるので、先に「音声が届いたか」を控えておく
                 bool hadAudio = (p_this->audioChunkCount > 0) || p_this->speaking;
@@ -457,7 +411,10 @@ void GeminiLive::load_role(){
   }else{
     systemRole = systemRole_noMemory;
   }
-  systemRole += " " + systemRole_realtimeAvatarExpression;
+  systemRole += " Choose happy or neutral with set_avatar_expression to match the conversation. "
+                "Use happy for joy, celebration or warm encouragement; use neutral for calm or serious conversation. "
+                "Choose once before each spoken reply when possible. After the tool result, continue your spoken reply in Japanese. "
+                "Do not speak the function name or its arguments.";
 
   if(load_system_prompt_from_spiffs()){
     role = String((const char*)systemPrompt["messages"][SYSTEM_PROMPT_INDEX_USER_ROLE]["content"]);
@@ -479,6 +436,75 @@ void GeminiLive::load_role(){
     role = defaultRole;
     userInfo = "User Info: ";
   }
+}
+
+void GeminiLive::clearResponseExpression()
+{
+    responseExpression.store(-1);
+}
+
+bool GeminiLive::applyResponseExpression()
+{
+    const int selected = responseExpression.load();
+    if(selected < 0){ return false; }
+    // Avatarの更新はUIタスクに集め、WebSocket受信との二重制御を避ける。
+    avatar.setExpression(selected == 1 ? Expression::Happy : Expression::Neutral);
+    return true;
+}
+
+void GeminiLive::handleToolCalls(JsonArrayConst calls)
+{
+    SpiRamJsonDocument resultDoc(4096);
+    JsonArray responses = resultDoc["toolResponse"]["functionResponses"].to<JsonArray>();
+    for(JsonObjectConst call : calls){
+        if(!call["id"].is<const char*>() || !call["name"].is<const char*>()){
+            Serial.println("[TOOL] missing id or name; cannot correlate response");
+            continue;
+        }
+        const char* name = call["name"];
+        const char* id = call["id"];
+        JsonObject response = responses.add<JsonObject>();
+        response["id"] = id;
+        response["name"] = name;
+        JsonObject output = response["response"].to<JsonObject>();
+        if(strcmp(name, "set_avatar_expression") == 0){
+            const char* expression = call["args"]["expression"] | "";
+            if(!call["args"].is<JsonObjectConst>() ||
+               (strcmp(expression, "happy") != 0 && strcmp(expression, "neutral") != 0)){
+                output["error"] = "expression must be happy or neutral";
+            }else if(isShowingError()){
+                output["error"] = "device is showing an error; expression was not selected";
+            }else{
+                responseExpression.store(strcmp(expression, "happy") == 0 ? 1 : 0);
+                output["result"] = "expression selected";
+                output["expression"] = expression;
+                Serial.printf("[T %lu] AI expression=%s id=%s speaking=%d\n",
+                              (unsigned long)millis(), expression, id, (int)speaking);
+            }
+        }else if(strcmp(name, "update_memory") == 0 && enableMemory() &&
+                 call["args"]["memory"].is<const char*>()){
+            output["result"] = fnCall->fn_update_memory(this, call["args"]["memory"].as<const char*>());
+        }else{
+            // 既存の接続済みMCPツールは維持し、未公開のローカル関数は実行しない。
+            bool knownMcpTool = false;
+            for(int s = 0; s < param.llm_conf.nMcpServers; s++){
+                if(!param.llm_conf.mcpServer[s].disabled && mcpClient[s]->isConnected() &&
+                   mcpClient[s]->search_tool(String(name))){ knownMcpTool = true; break; }
+            }
+            if(knownMcpTool && call["args"].is<JsonObjectConst>()){
+                String args;
+                serializeJson(call["args"], args);
+                output["result"] = fnCall->exec_calledFunc(name, args.c_str());
+            }else{
+                output["error"] = "unknown function or invalid arguments";
+            }
+        }
+    }
+    if(responses.size() > 0){
+        String json;
+        serializeJson(resultDoc, json);
+        if(!webSocket.sendTXT(json)){ Serial.println("[TOOL] response send failed"); }
+    }
 }
 
 String& GeminiLive::buildInputAudioJson(String& jsonBuf, String& base64)

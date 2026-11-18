@@ -198,9 +198,9 @@ void RealtimeAiMod::idle(void)
 
     // 0=待機 1=録音中 2=AI応答中
     int uiState = 0;
-    if(pRtLLM->isSpeaking())                 uiState = 2;
+    if(pRtLLM->isShowingError())             uiState = 3;
+    else if(pRtLLM->isSpeaking())            uiState = 2;
     else if(pRtLLM->isRealtimeRecording())   uiState = 1;
-    else if(pRtLLM->isShowingError())        uiState = 3;
 
     // 首の動きを会話に連動させる（サーボタスクが毎周期この値を見る）
     servo_conv_state = (uiState == 3) ? 0 : uiState;   // エラー表示中は首を待機扱い（首のタスクは0〜2しか知らない）
@@ -228,6 +228,13 @@ void RealtimeAiMod::idle(void)
       }
       prevUiState = uiState;
     }
+    // 状態遷移時の既定表情よりAIの選択を優先する。エラー表示は最優先。
+    const bool hasResponseExpression = uiState != 3 && pRtLLM->applyResponseExpression();
+    // 短い返答ではUIが発話状態を見逃す場合もあるため、選択解除自体でも戻す。
+    if(!hasResponseExpression && hadResponseExpression && uiState != 3){
+      avatar.setExpression(uiState == 2 ? Expression::Happy : Expression::Neutral);
+    }
+    hadResponseExpression = hasResponseExpression;
   }
 #endif
 

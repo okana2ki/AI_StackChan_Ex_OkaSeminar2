@@ -21,6 +21,7 @@ private:
     uint32_t recStartMs;       // 録音が始まった時刻（最短録音時間の判定用）
     bool     prevRecording;    // 録音状態の立ち上がりエッジ検出用
     int      prevUiState;      // 表情・首振りを状態遷移時のみ更新するための前回状態
+    bool hadResponseExpression = false;
 
     RealtimeLLMBase* pRtLLM;
 

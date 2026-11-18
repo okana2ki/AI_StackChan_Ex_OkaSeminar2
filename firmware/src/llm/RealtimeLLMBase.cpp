@@ -186,6 +186,7 @@ int RealtimeLLMBase::getAudioLevel()
 // 画面にエラーを出す。durationMs の間、待機中の吹き出しの代わりにエラーを表示する。
 void RealtimeLLMBase::showError(int kind, uint32_t durationMs)
 {
+    clearResponseExpression();
     lastError = kind;
     uint32_t until = millis() + durationMs;
     errorUntilMs = (until == 0) ? 1 : until;
@@ -206,6 +207,7 @@ void RealtimeLLMBase::startRealtimeRecord()
     // 新しく話し始めたら、前のエラー表示は消す
     errorUntilMs = 0;
     if(!realtime_recording){
+        clearResponseExpression();
         // [T] は応答速度の実測用。録音開始→AI音声開始→応答終了 の各時刻を残す。
         Serial.printf("[T %lu] Start realtime recording\n", (unsigned long)millis());
         realtime_recording = true;
