@@ -2,6 +2,9 @@
 
 **岡ゼミ版AIスタックチャンを動かしたい人や、それを起点に開発したい人は、まず、[スタックチャン AI会話マニュアル_授業版.md](https://github.com/okana2ki/AI_StackChan_Ex_OkaSeminar2/blob/main/%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%83%81%E3%83%A3%E3%83%B3%20AI%E4%BC%9A%E8%A9%B1%E3%83%9E%E3%83%8B%E3%83%A5%E3%82%A2%E3%83%AB_%E6%8E%88%E6%A5%AD%E7%89%88.md)) を見て下さい。**
 
+このブランチsample/ai-gestures）は、mainから仕様変更する場合のサンプルとして公開しています。mainでは、スタックチャンの表情や首の動作はプログラムで指定していますが、sample/ai-gesturesブランチでは、スタックチャンの表情や首の動作は、しゃべる内容に応じたものをAIに生成させます。2026/11/18時点でまだ開発途中ですが、学生が参考にできるよう公開しました。11/18時点の解説は、[AI表情_最初の改造例.md](https://github.com/okana2ki/AI_StackChan_Ex_OkaSeminar2/blob/sample/ai-gestures/doc/AI%E8%A1%A8%E6%83%85_%E6%9C%80%E5%88%9D%E3%81%AE%E6%94%B9%E9%80%A0%E4%BE%8B.md)を見て下さい。
+
+
 # AI Stack-chan Ex
 
 ## このフォークについて
